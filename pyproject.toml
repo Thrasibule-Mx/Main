@@ -1,0 +1,70 @@
+# pyproject.toml
+# ==============
+#
+# Copying
+# -------
+#
+# Copyright (c) 2020 Jimmy Thrasibule <dev@jimmy.lt>.
+#
+# This file is part of the *thrasibule.mx* project. This software project and
+# associated documentations files (the "Software") are exclusive property of
+# it's authors. It is prohibited to deal with the Software without explicit
+# authorization and agreement given by its authors. Restrictions include but not
+# limited to: the rights to use, copy, modify, merge, publish, distribute,
+# sublicense, sell copies of the Software.
+#
+[build-system]
+requires = ["poetry>=1.0"]
+build-backend = "poetry.masonry.api"
+
+
+[tool.isort]
+py_version = "36"
+known_third_party = []
+atomic = true
+combine_as_imports = true
+combine_star = true
+include_trailing_comma = true
+length_sort = true
+line_length = 80
+lines_after_imports = 2
+lines_between_types = 1
+multi_line_output = 3
+order_by_type = true
+use_parentheses = true
+
+
+[tool.poetry]
+name = "mx.thrasibule"
+version = "0.1.0-alpha.1"
+authors = [
+    "Jimmy Thrasibule <dev@jimmy.lt>",
+]
+maintainers = [
+    "Jimmy Thrasibule <dev@jimmy.lt>",
+]
+description = "Personal projects repository."
+license = "Proprietary"
+readme = "README.rst"
+repository = "https://bitbucket.org/thrasibule-mx/main"
+keywords = []
+# See https://pypi.python.org/pypi?%3Aaction=list_classifiers.
+classifiers = [
+    "Development Status :: 1 - Planning",
+    "Intended Audience :: Developers",
+    "Intended Audience :: Information Technology",
+    "Natural Language :: English",
+    "Operating System :: POSIX",
+    "Programming Language :: Python",
+    "Programming Language :: Python :: 3",
+    "Programming Language :: Python :: 3 :: Only",
+    "Programming Language :: Python :: 3.6",
+    "Topic :: Software Development :: Libraries",
+    "Topic :: Software Development :: Libraries :: Python Modules",
+    "Topic :: Utilities",
+    "Typing :: Typed",
+]
+
+[tool.poetry.dependencies]
+python = "^3.6"
+sphinx = {version = "^3.2", extras = ["docs"]}
