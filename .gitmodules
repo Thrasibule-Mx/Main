@@ -4,3 +4,6 @@
 [submodule "mx/thrasibule/projects/mx"]
 	path = mx/thrasibule/projects/mx
 	url = git@bitbucket.org:thrasibule-mx/mx.git
+[submodule "mx/thrasibule/projects/none"]
+	path = mx/thrasibule/projects/none
+	url = git@bitbucket.org:thrasibule-mx/none.git

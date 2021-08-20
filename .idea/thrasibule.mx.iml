@@ -11,5 +11,6 @@
     <orderEntry type="sourceFolder" forTests="false" />
     <orderEntry type="module" module-name="zyn" />
     <orderEntry type="module" module-name="mx" />
+    <orderEntry type="module" module-name="none" />
   </component>
 </module>
