@@ -7,3 +7,6 @@
 [submodule "mx/thrasibule/projects/none"]
 	path = mx/thrasibule/projects/none
 	url = git@bitbucket.org:thrasibule-mx/none.git
+[submodule "mx/thrasibule/projects/href.sh"]
+	path = mx/thrasibule/projects/href.sh
+	url = git@bitbucket.org:thrasibule-mx/href.sh.git
