@@ -13,5 +13,6 @@
     <orderEntry type="module" module-name="mx" />
     <orderEntry type="module" module-name="none" />
     <orderEntry type="module" module-name="href.sh" />
+    <orderEntry type="module" module-name="kado" />
   </component>
 </module>

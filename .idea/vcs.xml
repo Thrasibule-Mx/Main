@@ -3,6 +3,7 @@
   <component name="VcsDirectoryMappings">
     <mapping directory="$PROJECT_DIR$" vcs="Git" />
     <mapping directory="$PROJECT_DIR$/mx/thrasibule/projects/href.sh" vcs="Git" />
+    <mapping directory="$PROJECT_DIR$/mx/thrasibule/projects/kado" vcs="Git" />
     <mapping directory="$PROJECT_DIR$/mx/thrasibule/projects/mx" vcs="Git" />
     <mapping directory="$PROJECT_DIR$/mx/thrasibule/projects/none" vcs="Git" />
     <mapping directory="$PROJECT_DIR$/mx/thrasibule/projects/zyn" vcs="Git" />

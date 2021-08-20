@@ -3,6 +3,7 @@
   <component name="ProjectModuleManager">
     <modules>
       <module fileurl="file://$PROJECT_DIR$/mx/thrasibule/projects/href.sh/.idea/href.sh.iml" filepath="$PROJECT_DIR$/mx/thrasibule/projects/href.sh/.idea/href.sh.iml" />
+      <module fileurl="file://$PROJECT_DIR$/mx/thrasibule/projects/kado/.idea/kado.iml" filepath="$PROJECT_DIR$/mx/thrasibule/projects/kado/.idea/kado.iml" />
       <module fileurl="file://$PROJECT_DIR$/mx/thrasibule/projects/mx/.idea/mx.iml" filepath="$PROJECT_DIR$/mx/thrasibule/projects/mx/.idea/mx.iml" />
       <module fileurl="file://$PROJECT_DIR$/mx/thrasibule/projects/none/.idea/none.iml" filepath="$PROJECT_DIR$/mx/thrasibule/projects/none/.idea/none.iml" />
       <module fileurl="file://$PROJECT_DIR$/.idea/thrasibule.mx.iml" filepath="$PROJECT_DIR$/.idea/thrasibule.mx.iml" />

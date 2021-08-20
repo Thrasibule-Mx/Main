@@ -10,3 +10,6 @@
 [submodule "mx/thrasibule/projects/href.sh"]
 	path = mx/thrasibule/projects/href.sh
 	url = git@bitbucket.org:thrasibule-mx/href.sh.git
+[submodule "mx/thrasibule/projects/kado"]
+	path = mx/thrasibule/projects/kado
+	url = git@bitbucket.org:thrasibule-mx/kado.git
