@@ -1,0 +1,167 @@
+# mx\thrasibule\universe\aws\admin\templates\0002-aws-admin-sso-storage-administrators.cfyml
+# ==========================================================================================
+AWSTemplateFormatVersion: "2010-09-09"
+Description: >-
+    Set up the permissions to administrate the S3 storage resources within the
+    different accounts.
+
+Metadata:
+    "TMX::AWSTemplateVersion": "1.0.0"
+    "TMX::Owner": "Jimmy Thrasibule <jimmy@thrasibule.mx>"
+    "AWS::CloudFormation::Interface":
+        ParameterGroups:
+            - Label:
+                default: "AWS Accounts"
+              Parameters:
+                - "AdminAccountId"
+                - "UniverseAccountId"
+            - Label:
+                default: "SSO Parameters"
+              Parameters:
+                - "SSOInstanceArn"
+                - "SSOPrincipalId"
+                - "SSOPrincipalType"
+            - Label:
+                default: "Stack"
+              Parameters:
+                - "Prefix"
+
+Parameters:
+    AdminAccountId:
+        Type: "String"
+        Description: "The AWS account identifier of the _admin_ account."
+        Default: "479518259644"
+        MinLength: 12
+        MaxLength: 12
+        AllowedPattern: "^\\d{12}$"
+        ConstraintDescription: "Must be a valid AWS account number."
+
+    UniverseAccountId:
+        Type: "String"
+        Description: "The AWS account identifier of the _universe_ account."
+        Default: "314637056362"
+        MinLength: 12
+        MaxLength: 12
+        AllowedPattern: "^\\d{12}$"
+        ConstraintDescription: "Must be a valid AWS account number."
+
+    SSOInstanceArn:
+        Type: "String"
+        Description: >-
+            The ARN of the SSO instance on which to create the resources.
+        Default: "arn:aws:sso:::instance/ssoins-6804ddccfa1cfe01"
+        MinLength: 43
+        MaxLength: 46
+        AllowedPattern: "arn:aws:sso:::instance/(sso)?ins-[a-zA-Z0-9-.]{16}"
+        ConstraintDescription: >-
+            The provided value must be a valid AWS SSO instance ARN.
+
+    SSOPrincipalId:
+        Type: "String"
+        Description: >-
+            The identifier of the user or group which is allowed to administrate
+            the S3 storage resources.
+        # SSO Group: TMXUniverseStorageAdministrators
+        Default: "9367048bc1-161fc1d1-761c-4475-9731-dac56580ebd3"
+        MinLength: 36
+        MaxLength: 47
+        AllowedPattern: >-
+            ^([0-9a-f]{10}-|)[A-Fa-f0-9]{8}-[A-Fa-f0-9]{4}-[A-Fa-f0-9]{4}-[A-Fa-f0-9]{4}-[A-Fa-f0-9]{12}$
+        ConstraintDescription: >-
+            PrincipalIds are GUIDs
+            (For example, f81d4fae-7dec-11d0-a765-00a0c91e6bf6).
+
+    SSOPrincipalType:
+        Type: "String"
+        Description: "The type of the provided identity."
+        Default: "GROUP"
+        AllowedValues:
+            - "USER"
+            - "GROUP"
+
+    Prefix:
+        Type: "String"
+        Description: "A value prepended to each created resources."
+        Default: "TMXStorage"
+        MinLength: 0
+        MaxLength: 128
+        AllowedPattern: "^[\\w-]*$"
+        ConstraintDescription: >-
+            Prefix is a string of characters consisting of upper and lowercase
+            alphanumeric characters, dash (-) and underscore (_) with no spaces.
+
+Conditions:
+    AdminAccount: !Equals [!Ref "AWS::AccountId", !Ref "AdminAccountId"]
+
+Resources:
+    SSOPermissionSet:
+        Type: "AWS::SSO::PermissionSet"
+        Condition: "AdminAccount"
+        Properties:
+            Name: !Sub "${Prefix}Access"
+            InstanceArn: !Ref "SSOInstanceArn"
+            Description: >-
+                Allow the administration of the S3 storage resources within the
+                account.
+            SessionDuration: "PT1H"
+            InlinePolicy:
+                Version: "2012-10-17"
+                Statement:
+                    # Administrators are not allowed to read or write data by
+                    # default.
+                    - Effect: "Deny"
+                      Action:
+                        - "s3-object-lambda:DeleteObject"
+                        - "s3-object-lambda:GetObject"
+                        - "s3-object-lambda:PutObject"
+                        - "s3-object-lambda:WriteGetObjectResponse"
+                        - "s3-outposts:DeleteObject"
+                        - "s3-outposts:GetObject"
+                        - "s3-outposts:PutObject"
+                        - "s3:DeleteObject"
+                        - "s3:GetObject"
+                        - "s3:PutObject"
+                        - "s3:ReplicateDelete"
+                        - "s3:ReplicateObject"
+                      Resource: "*"
+                    # All other S3 actions are allowed.
+                    # We list them explicitly to avoid the opening of unwanted
+                    # permissions.
+                    - Effect: "Allow"
+                      Action:
+                        - "s3-object-lambda:AbortMultipartUpload"
+                        - "s3-object-lambda:Delete*"
+                        - "s3-object-lambda:Get*"
+                        - "s3-object-lambda:List*"
+                        - "s3-object-lambda:Put*"
+                        - "s3-object-lambda:RestoreObject"
+                        - "s3-outposts:AbortMultipartUpload"
+                        - "s3-outposts:Create*"
+                        - "s3-outposts:Delete*"
+                        - "s3-outposts:Get*"
+                        - "s3-outposts:List*"
+                        - "s3-outposts:Put*"
+                        - "s3:AbortMultipartUpload"
+                        - "s3:ByPassGovernanceRetention"
+                        - "s3:Create*"
+                        - "s3:Delete*"
+                        - "s3:Describe*"
+                        - "s3:Get*"
+                        - "s3:List*"
+                        - "s3:ObjectOwnerOverrideToBucketOwner"
+                        - "s3:Put*"
+                        - "s3:ReplicateTags"
+                        - "s3:RestoreObject"
+                        - "s3:Update*"
+                      Resource: "*"
+
+    SSOAssignment:
+        Type: "AWS::SSO::Assignment"
+        Condition: "AdminAccount"
+        Properties:
+            InstanceArn: !Ref "SSOInstanceArn"
+            PermissionSetArn: !GetAtt "SSOPermissionSet.PermissionSetArn"
+            PrincipalId: !Ref "SSOPrincipalId"
+            PrincipalType: !Ref "SSOPrincipalType"
+            TargetId: !Ref "UniverseAccountId"
+            TargetType: "AWS_ACCOUNT"
