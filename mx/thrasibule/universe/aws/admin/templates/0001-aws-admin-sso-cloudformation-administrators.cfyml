@@ -16,6 +16,11 @@ Metadata:
                 - "AdminAccountId"
                 - "UniverseAccountId"
             - Label:
+                default: "CloudFormation S3 Settings"
+              Parameters:
+                - "CloudFormationS3BucketName"
+                - "CloudFormationS3BucketKeyArn"
+            - Label:
                 default: "SSO Parameters"
               Parameters:
                 - "SSOInstanceArn"
@@ -44,6 +49,24 @@ Parameters:
         MaxLength: 12
         AllowedPattern: "^\\d{12}$"
         ConstraintDescription: "Must be a valid AWS account number."
+
+    CloudFormationS3BucketName:
+        Type: "String"
+        Description: >-
+            Name of the S3 bucket storing the CloudFormation templates.
+        Default: "tmx-universe-cloudformation"
+        MinLength: 1
+        MaxLength: 1024
+        AllowedPattern: "^[0-9a-z.-]+$"
+        ConstraintDescription: >-
+            The bucket name must contain only lowercase letters, numbers,
+            periods (.), and dashes (-).
+
+    CloudFormationS3BucketKeyArn:
+        Type: "String"
+        Description: >-
+            The ARN of the KMS key used to encrypt the data into the S3 bucket.
+        AllowedPattern: "^arn:aws:kms:[\\w-]+:\\d{12}:key/[0-9a-z-]+$"
 
     SSOInstanceArn:
         Type: "String"
@@ -130,6 +153,77 @@ Resources:
                         - "iam:GetRole"
                         - "iam:PassRole"
                       Resource: !GetAtt "AWSCloudFormationStackAdministrationRole.Arn"
+                    - Effect: "Allow"
+                      Action:
+                        - "s3:ListAllMyBuckets"
+                      Resource: "*"
+                    - Effect: "Allow"
+                      Action:
+                        - "s3:GetBucketLocation"
+                        - "s3:GetBucketTagging"
+                        - "s3:GetBucketVersioning"
+                        - "s3:ListBucket"
+                        - "s3:ListBucketVersions"
+                        - "s3:ListBucketMultipartUploads"
+                      Resource:
+                        - !Sub "arn:aws:s3:::${CloudFormationS3BucketName}"
+                    - Effect: "Allow"
+                      Action:
+                        - "s3:AbortMultipartUpload"
+                        - "s3:DeleteObject"
+                        - "s3:DeleteObjectTagging"
+                        - "s3:DeleteObjectVersion"
+                        - "s3:DeleteObjectVersionTagging"
+                        - "s3:GetObject"
+                        - "s3:GetObjectTagging"
+                        - "s3:GetObjectVersion"
+                        - "s3:GetObjectVersionTagging"
+                        - "s3:ListMultipartUploadParts"
+                        - "s3:PutObjectTagging"
+                        - "s3:PutObjectVersionTagging"
+                      Resource:
+                        - !Sub "arn:aws:s3:::${CloudFormationS3BucketName}/*"
+                    - Effect: "Allow"
+                      Action:
+                        - "s3:PutObject"
+                        - "s3:PutObjectAcl"
+                      Resource:
+                        - !Sub "arn:aws:s3:::${CloudFormationS3BucketName}/*"
+                      Condition:
+                        StringEquals:
+                            "s3:x-amz-acl": "bucket-owner-full-control"
+                    - Effect: "Allow"
+                      Action:
+                        - "kms:DescribeKey"
+                      Resource: !Sub "${CloudFormationS3BucketKeyArn}"
+                      Condition:
+                        StringEquals:
+                            "kms:ViaService":
+                                - !Sub "s3.${AWS::Region}.amazonaws.com"
+                    - Effect: "Allow"
+                      Action:
+                        - "kms:Decrypt"
+                        - "kms:Encrypt"
+                        - "kms:GenerateDataKey*"
+                        - "kms:ReEncrypt*"
+                      Resource: !Sub "${CloudFormationS3BucketKeyArn}"
+                      Condition:
+                        StringEquals:
+                            "kms:EncryptionContext:aws-s3-arn": !Sub "arn:aws:s3:::${CloudFormationS3BucketName}"
+                            "kms:ViaService":
+                                - !Sub "s3.${AWS::Region}.amazonaws.com"
+                    - Effect: "Allow"
+                      Action:
+                        - "kms:CreateGrant"
+                        - "kms:ListGrants"
+                        - "kms:RevokeGrant"
+                      Resource: !Sub "${CloudFormationS3BucketKeyArn}"
+                      Condition:
+                        Bool:
+                            "kms:GrantIsForAWSResource": true
+                        StringEquals:
+                            "kms:ViaService":
+                                - !Sub "s3.${AWS::Region}.amazonaws.com"
             ManagedPolicies:
                 - "arn:aws:iam::aws:policy/AWSCloudFormationFullAccess"
                 - "arn:aws:iam::aws:policy/AWSOrganizationsReadOnlyAccess"
@@ -155,6 +249,77 @@ Resources:
                         - "iam:PassRole"
                       Resource: >-
                         arn:aws:iam::314637056362:role/aws-service-role/member.org.stacksets.cloudformation.amazonaws.com/AWSServiceRoleForCloudFormationStackSetsOrgMember
+                    - Effect: "Allow"
+                      Action:
+                        - "s3:ListAllMyBuckets"
+                      Resource: "*"
+                    - Effect: "Allow"
+                      Action:
+                        - "s3:GetBucketLocation"
+                        - "s3:GetBucketTagging"
+                        - "s3:GetBucketVersioning"
+                        - "s3:ListBucket"
+                        - "s3:ListBucketVersions"
+                        - "s3:ListBucketMultipartUploads"
+                      Resource:
+                        - !Sub "arn:aws:s3:::${CloudFormationS3BucketName}"
+                    - Effect: "Allow"
+                      Action:
+                        - "s3:AbortMultipartUpload"
+                        - "s3:DeleteObject"
+                        - "s3:DeleteObjectTagging"
+                        - "s3:DeleteObjectVersion"
+                        - "s3:DeleteObjectVersionTagging"
+                        - "s3:GetObject"
+                        - "s3:GetObjectTagging"
+                        - "s3:GetObjectVersion"
+                        - "s3:GetObjectVersionTagging"
+                        - "s3:ListMultipartUploadParts"
+                        - "s3:PutObjectTagging"
+                        - "s3:PutObjectVersionTagging"
+                      Resource:
+                        - !Sub "arn:aws:s3:::${CloudFormationS3BucketName}/*"
+                    - Effect: "Allow"
+                      Action:
+                        - "s3:PutObject"
+                        - "s3:PutObjectAcl"
+                      Resource:
+                        - !Sub "arn:aws:s3:::${CloudFormationS3BucketName}/*"
+                      Condition:
+                        StringEquals:
+                            "s3:x-amz-acl": "bucket-owner-full-control"
+                    - Effect: "Allow"
+                      Action:
+                        - "kms:DescribeKey"
+                      Resource: !Sub "${CloudFormationS3BucketKeyArn}"
+                      Condition:
+                        StringEquals:
+                            "kms:ViaService":
+                                - !Sub "s3.${AWS::Region}.amazonaws.com"
+                    - Effect: "Allow"
+                      Action:
+                        - "kms:Decrypt"
+                        - "kms:Encrypt"
+                        - "kms:GenerateDataKey*"
+                        - "kms:ReEncrypt*"
+                      Resource: !Sub "${CloudFormationS3BucketKeyArn}"
+                      Condition:
+                        StringEquals:
+                            "kms:EncryptionContext:aws-s3-arn": !Sub "arn:aws:s3:::${CloudFormationS3BucketName}"
+                            "kms:ViaService":
+                                - !Sub "s3.${AWS::Region}.amazonaws.com"
+                    - Effect: "Allow"
+                      Action:
+                        - "kms:CreateGrant"
+                        - "kms:ListGrants"
+                        - "kms:RevokeGrant"
+                      Resource: !Sub "${CloudFormationS3BucketKeyArn}"
+                      Condition:
+                        Bool:
+                            "kms:GrantIsForAWSResource": true
+                        StringEquals:
+                            "kms:ViaService":
+                                - !Sub "s3.${AWS::Region}.amazonaws.com"
             ManagedPolicies:
                 - "arn:aws:iam::aws:policy/AWSCloudFormationFullAccess"
                 - "arn:aws:iam::aws:policy/AWSOrganizationsReadOnlyAccess"
