@@ -154,6 +154,26 @@ Resources:
                         - "s3:RestoreObject"
                         - "s3:Update*"
                       Resource: "*"
+                    - Effect: "Allow"
+                      Action:
+                        - "kms:DescribeKey"
+                      Resource: "*"
+                      Condition:
+                        StringEquals:
+                            "kms:ViaService":
+                                - "s3.amazonaws.com"
+                    - Effect: "Allow"
+                      Action:
+                        - "kms:CreateGrant"
+                        - "kms:ListGrants"
+                        - "kms:RevokeGrant"
+                      Resource: "*"
+                      Condition:
+                        Bool:
+                            "kms:GrantIsForAWSResource": true
+                        StringEquals:
+                            "kms:ViaService":
+                                - "s3.amazonaws.com"
 
     SSOAssignment:
         Type: "AWS::SSO::Assignment"
