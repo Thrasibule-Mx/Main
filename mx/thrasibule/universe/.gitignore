@@ -1,0 +1,48 @@
+# mx/thrasibule/universe/.gitignore
+# =================================
+#
+# Copying
+# -------
+#
+# Copyright (c) 2020-2021 Jimmy Thrasibule <dev@jimmy.lt>.
+#
+# This file is part of the *thrasibule.mx* project. This software project and
+# associated documentations files (the "Software") are exclusive property of
+# it's authors. It is prohibited to deal with the Software without explicit
+# authorization and agreement given by its authors. Restrictions include but not
+# limited to: the rights to use, copy, modify, merge, publish, distribute,
+# sublicense, sell copies of the Software.
+#
+
+# Terraform
+# ---------
+
+# Local .terraform directories
+**/.terraform/*
+
+# Lock files
+.terraform.lock.hcl
+
+# .tfstate files
+*.tfstate
+*.tfstate.*
+
+# Crash log files
+crash.log
+
+# Exclude all .tfvars files, which are likely to contain sentitive data, such as
+# password, private keys, and other secrets. These should not be part of version
+# control as they are data points which are potentially sensitive and subject
+# to change depending on the environment.
+*.tfvars
+
+# Ignore override files as they are usually used to override resources locally
+# and so are not checked in.
+override.tf
+override.tf.json
+*_override.tf
+*_override.tf.json
+
+# Ignore CLI configuration files
+.terraformrc
+terraform.rc
