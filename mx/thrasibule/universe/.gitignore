@@ -20,9 +20,6 @@
 # Local .terraform directories
 **/.terraform/*
 
-# Lock files
-.terraform.lock.hcl
-
 # .tfstate files
 *.tfstate
 *.tfstate.*
@@ -46,3 +43,7 @@ override.tf.json
 # Ignore CLI configuration files
 .terraformrc
 terraform.rc
+
+# Ignore Terragrunt generated files since they are created on the fly.
+*_generated.tf
+*_generated.tf.json
