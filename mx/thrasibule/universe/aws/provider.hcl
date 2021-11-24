@@ -14,6 +14,11 @@ remote_state {
     backend = "s3"
     disable_init = true
 
+    generate = {
+        if_exists = "overwrite_terragrunt"
+        path = "backend_generated.tf"
+    }
+
     config = {
         bucket = "tmx-universe-tfstate"
         key = format(
@@ -36,16 +41,11 @@ remote_state {
             )
         )
     }
-
-    generate = {
-        if_exists = "overwrite_terragrunt"
-        path = "backend.tf"
-    }
 }
 
 generate "terraform" {
     if_exists = "overwrite_terragrunt"
-    path = "terraform.tf"
+    path = "terraform_generated.tf"
     contents = <<EOG
 terraform {
     required_providers {
@@ -60,7 +60,7 @@ EOG
 
 generate "provider" {
     if_exists = "overwrite_terragrunt"
-    path = "provider.tf"
+    path = "provider_generated.tf"
     contents = <<EOG
 provider "aws" {
     region = "${local.env.locals.aws_region}"
