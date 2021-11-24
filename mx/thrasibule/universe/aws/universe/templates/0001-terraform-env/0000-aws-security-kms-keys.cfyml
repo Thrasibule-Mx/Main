@@ -1,0 +1,392 @@
+# mx/thrasibule/universe/aws/universe/templates/tfstate/0000-aws-security-kms-keys.cfyml
+# ======================================================================================
+AWSTemplateFormatVersion: "2010-09-09"
+Description: >-
+    Create a set of Customer Managed Keys (CMK) for the _universe_ account to
+    encrypt the Terraform state in S3 and DynamoDB.
+
+Metadata:
+    "TMX::AWSTemplateVersion": "1.0.0"
+    "TMX::AWSTemplateOwner": "Jimmy Thrasibule <jimmy@thrasibule.mx>"
+    "AWS::CloudFormation::Interface":
+        ParameterGroups:
+            - Label:
+                default: "DynamoDB Settings"
+              Parameters:
+                - "TerraformStateDynamoDBTableName"
+                - "TerraformStateDynamoDBKeyUserArn"
+            - Label:
+                default: "S3 Bucket Settings"
+              Parameters:
+                - "TerraformStateS3BucketName"
+                - "TerraformStateS3KeyUserArn"
+            - Label:
+                default: "Keys Administration"
+              Parameters:
+                - "KeyAdministratorArn"
+            - Label:
+                default: "AWS Accounts"
+              Parameters:
+                - "SecurityAccountId"
+                - "UniverseAccountId"
+
+Mappings:
+    Default:
+        KeyAdministrators:
+            Value:
+                - "arn:aws:iam::456957523240:role/aws-reserved/sso.amazonaws.com/eu-west-1/AWSReservedSSO_TMXKeyManagementServiceAccess_ecbf626714a23725"
+        TerraformStateDynamoDBKeyUsers:
+            Value:
+                  # Universe account.
+                - "arn:aws:iam::314637056362:root"
+        TerraformStateS3KeyUsers:
+            Value:
+                  # Universe account.
+                - "arn:aws:iam::314637056362:root"
+
+Parameters:
+    TerraformStateDynamoDBTableName:
+        Type: "String"
+        Description: >-
+            The name of the DynamoDB table storing the Terraform state.
+        Default: "tfstate"
+        MinLength: 3
+        MaxLength: 255
+        AllowedPattern: "[\\w.-]+"
+        ConstraintDescription: >-
+            The DynamoDB table name can only contain alpha-numeric, period (.)
+            and dash (-) characters.
+
+    TerraformStateDynamoDBKeyUserArn:
+        Type: "CommaDelimitedList"
+        Description: >-
+            The ARN of the identity allowed to make use of the key for DynamoDB.
+
+    TerraformStateS3BucketName:
+        Type: "String"
+        Description: "Name of the S3 bucket storing the Terraform state."
+        Default: "tmx-universe-tfstate"
+        MinLength: 1
+        MaxLength: 1024
+        AllowedPattern: "^[0-9a-z.-]+$"
+        ConstraintDescription: >-
+            The bucket name must contain only lowercase letters, numbers,
+            periods (.), and dashes (-).
+
+    TerraformStateS3KeyUserArn:
+        Type: "CommaDelimitedList"
+        Description: >-
+            The ARN of the identity allowed to make use of the key for S3.
+
+    KeyAdministratorArn:
+        Type: "CommaDelimitedList"
+        Description: "The ARN of the identity allowed to administrate the keys."
+
+    SecurityAccountId:
+        Type: "String"
+        Description: "The AWS account identifier of the _security_ account."
+        Default: "456957523240"
+        MinLength: 12
+        MaxLength: 12
+        AllowedPattern: "^\\d{12}$"
+        ConstraintDescription: "Must be a valid AWS account number."
+
+    UniverseAccountId:
+        Type: "String"
+        Description: "The AWS account identifier of the _universe_ account."
+        Default: "314637056362"
+        MinLength: 12
+        MaxLength: 12
+        AllowedPattern: "^\\d{12}$"
+        ConstraintDescription: "Must be a valid AWS account number."
+
+Outputs:
+    TerraformStateDynamoDBTableKMSKeyId:
+        Condition: "IsSecurityAccount"
+        Description: >-
+            The identifier of the KMS key to encrypt the DynamoDB table storing
+            the Terraform state.
+        Value: !Ref "TerraformStateDynamoDBTableKMSKey"
+        Export:
+            Name: "TMX::Universe::Stack::Terraform::StateDynamoDBTableKMSKeyId"
+
+    TerraformDynamoDBTableKMSKeyArn:
+        Condition: "IsSecurityAccount"
+        Description: >-
+            The ARN of the KMS key to encrypt the DynamoDB table storing the
+            Terraform state.
+        Value: !GetAtt "TerraformStateDynamoDBTableKMSKey.Arn"
+        Export:
+            Name: "TMX::Universe::Stack::Terraform::StateDynamoDBTableKMSKeyArn"
+
+    TerraformStateS3KMSKeyId:
+        Condition: "IsSecurityAccount"
+        Description: >-
+            The identifier of the KMS key to encrypt the S3 bucket storing the
+            Terraform state.
+        Value: !Ref "TerraformStateS3KMSKey"
+        Export:
+            Name: "TMX::Universe::Stack::Terraform::StateS3KMSKeyId"
+
+    TerraformS3KMSKeyArn:
+        Condition: "IsSecurityAccount"
+        Description: >-
+            The ARN of the KMS key to encrypt the S3 bucket storing the
+            Terraform state.
+        Value: !GetAtt "TerraformStateS3KMSKey.Arn"
+        Export:
+            Name: "TMX::Universe::Stack::Terraform::StateS3KMSKeyArn"
+
+Conditions:
+    HasKeyAdministrators: !Not [!Equals ["", !Join ["", !Ref "KeyAdministratorArn"]]]
+    HasTerraformStateDynamoDBKeyUsers: !Not [!Equals ["", !Join ["", !Ref "TerraformStateDynamoDBKeyUserArn"]]]
+    HasTerraformStateS3KeyUsers: !Not [!Equals ["", !Join ["", !Ref "TerraformStateS3KeyUserArn"]]]
+    IsSecurityAccount: !Equals [!Ref "AWS::AccountId", !Ref "SecurityAccountId"]
+
+Resources:
+    TerraformStateDynamoDBTableKMSKey:
+        Type: "AWS::KMS::Key"
+        Condition: "IsSecurityAccount"
+        Properties:
+            Description: >-
+                Customer Managed Key (CMK) for S3 bucket encryption in the
+                _universe_ account.
+            Enabled: true
+            EnableKeyRotation: false
+            KeySpec: "SYMMETRIC_DEFAULT"
+            KeyUsage: "ENCRYPT_DECRYPT"
+            MultiRegion: false
+            KeyPolicy:
+                Version: "2012-10-17"
+                Statement:
+                    - Sid: "Root"
+                      Effect: "Allow"
+                      Principal:
+                        AWS: !Sub "arn:aws:iam::${AWS::AccountId}:root"
+                      Action:
+                        - "kms:CancelKeyDeletion"
+                        - "kms:Delete*"
+                        - "kms:Describe*"
+                        - "kms:Disable*"
+                        - "kms:Enable*"
+                        - "kms:Get*"
+                        - "kms:List*"
+                        - "kms:PutKeyPolicy"
+                        - "kms:RetireGrant"
+                        - "kms:Revoke*"
+                        - "kms:ScheduleKeyDeletion"
+                      Resource: "*"
+
+                    - Sid: "Key Administrators"
+                      Effect: "Allow"
+                      Principal:
+                        AWS: !If
+                            - "HasKeyAdministrators"
+                            - !Ref "KeyAdministratorArn"
+                            - !FindInMap ["Default", "KeyAdministrators", "Value"]
+                      Action:
+                        - "kms:CancelKeyDeletion"
+                        - "kms:Create*"
+                        - "kms:Delete*"
+                        - "kms:Describe*"
+                        - "kms:Disable*"
+                        - "kms:Enable*"
+                        - "kms:Get*"
+                        - "kms:List*"
+                        - "kms:Put*"
+                        - "kms:RetireGrant"
+                        - "kms:Revoke*"
+                        - "kms:ScheduleKeyDeletion"
+                        - "kms:TagResource"
+                        - "kms:UntagResource"
+                        - "kms:Update*"
+                      Resource: "*"
+
+                    - Sid: "DynamoDB Key Listing"
+                      Effect: "Allow"
+                      Principal:
+                        AWS: !If
+                            - "HasTerraformStateDynamoDBKeyUsers"
+                            - !Ref "TerraformStateDynamoDBKeyUserArn"
+                            - !FindInMap ["Default", "TerraformStateDynamoDBKeyUsers", "Value"]
+                      Action:
+                        - "kms:DescribeKey"
+                      Resource: "*"
+                      Condition:
+                        StringEquals:
+                            "kms:CallerAccount": !Ref "UniverseAccountId"
+                            "kms:ViaService":
+                                - !Sub "dynamodb.${AWS::Region}.amazonaws.com"
+
+                    - Sid: "DynamoDB Key Usage"
+                      Effect: "Allow"
+                      Principal:
+                        AWS: !If
+                            - "HasTerraformStateDynamoDBKeyUsers"
+                            - !Ref "TerraformStateDynamoDBKeyUserArn"
+                            - !FindInMap ["Default", "TerraformStateDynamoDBKeyUsers", "Value"]
+                      Action:
+                        - "kms:Decrypt"
+                        - "kms:Encrypt"
+                        - "kms:GenerateDataKey*"
+                        - "kms:ReEncrypt*"
+                      Resource: "*"
+                      Condition:
+                        StringEquals:
+                            "kms:CallerAccount": !Ref "UniverseAccountId"
+                            "kms:EncryptionContext:aws:dynamodb:tableName": !Ref "TerraformStateDynamoDBTableName"
+                            "kms:EncryptionContext:aws:dynamodb:subscriberId": !Ref "UniverseAccountId"
+                            "kms:ViaService":
+                                - !Sub "dynamodb.${AWS::Region}.amazonaws.com"
+
+                    - Sid: "DynamoDB Grant"
+                      Effect: "Allow"
+                      Principal:
+                        AWS: !If
+                            - "HasTerraformStateDynamoDBKeyUsers"
+                            - !Ref "TerraformStateDynamoDBKeyUserArn"
+                            - !FindInMap ["Default", "TerraformStateDynamoDBKeyUsers", "Value"]
+                      Action:
+                        - "kms:CreateGrant"
+                        - "kms:ListGrants"
+                        - "kms:RevokeGrant"
+                      Resource: "*"
+                      Condition:
+                        Bool:
+                            "kms:GrantIsForAWSResource": true
+                        StringEquals:
+                            "kms:CallerAccount": !Ref "UniverseAccountId"
+                            "kms:ViaService":
+                                - !Sub "dynamodb.${AWS::Region}.amazonaws.com"
+            Tags:
+                - Key: "TMX::Owner"
+                  Value: "jimmy@thrasibule.mx"
+                - Key: "TMX::AWSAccountName"
+                  Value: "universe"
+                - Key: "TMX:AWSAccountId"
+                  Value: !Ref "UniverseAccountId"
+                - Key: "TMX::AWSService"
+                  Value: "dynamodb"
+
+    TerraformStateS3KMSKey:
+        Type: "AWS::KMS::Key"
+        Condition: "IsSecurityAccount"
+        Properties:
+            Description: >-
+                Customer Managed Key (CMK) for S3 bucket encryption in the
+                _universe_ account.
+            Enabled: true
+            EnableKeyRotation: false
+            KeySpec: "SYMMETRIC_DEFAULT"
+            KeyUsage: "ENCRYPT_DECRYPT"
+            MultiRegion: false
+            KeyPolicy:
+                Version: "2012-10-17"
+                Statement:
+                    - Sid: "Root"
+                      Effect: "Allow"
+                      Principal:
+                        AWS: !Sub "arn:aws:iam::${AWS::AccountId}:root"
+                      Action:
+                        - "kms:CancelKeyDeletion"
+                        - "kms:Delete*"
+                        - "kms:Describe*"
+                        - "kms:Disable*"
+                        - "kms:Enable*"
+                        - "kms:Get*"
+                        - "kms:List*"
+                        - "kms:PutKeyPolicy"
+                        - "kms:RetireGrant"
+                        - "kms:Revoke*"
+                        - "kms:ScheduleKeyDeletion"
+                      Resource: "*"
+
+                    - Sid: "Key Administrators"
+                      Effect: "Allow"
+                      Principal:
+                        AWS: !If
+                            - "HasKeyAdministrators"
+                            - !Ref "KeyAdministratorArn"
+                            - !FindInMap ["Default", "KeyAdministrators", "Value"]
+                      Action:
+                        - "kms:CancelKeyDeletion"
+                        - "kms:Create*"
+                        - "kms:Delete*"
+                        - "kms:Describe*"
+                        - "kms:Disable*"
+                        - "kms:Enable*"
+                        - "kms:Get*"
+                        - "kms:List*"
+                        - "kms:Put*"
+                        - "kms:RetireGrant"
+                        - "kms:Revoke*"
+                        - "kms:ScheduleKeyDeletion"
+                        - "kms:TagResource"
+                        - "kms:UntagResource"
+                        - "kms:Update*"
+                      Resource: "*"
+
+                    - Sid: "S3 Key Listing"
+                      Effect: "Allow"
+                      Principal:
+                        AWS: !If
+                            - "HasTerraformStateS3KeyUsers"
+                            - !Ref "TerraformStateS3KeyUserArn"
+                            - !FindInMap ["Default", "TerraformStateS3KeyUsers", "Value"]
+                      Action:
+                        - "kms:DescribeKey"
+                      Resource: "*"
+                      Condition:
+                        StringEquals:
+                            "kms:CallerAccount": !Ref "UniverseAccountId"
+                            "kms:ViaService":
+                                - !Sub "s3.${AWS::Region}.amazonaws.com"
+
+                    - Sid: "S3 Key Usage"
+                      Effect: "Allow"
+                      Principal:
+                        AWS: !If
+                            - "HasTerraformStateS3KeyUsers"
+                            - !Ref "TerraformStateS3KeyUserArn"
+                            - !FindInMap ["Default", "TerraformStateS3KeyUsers", "Value"]
+                      Action:
+                        - "kms:Decrypt"
+                        - "kms:Encrypt"
+                        - "kms:GenerateDataKey*"
+                        - "kms:ReEncrypt*"
+                      Resource: "*"
+                      Condition:
+                        StringEquals:
+                            "kms:CallerAccount": !Ref "UniverseAccountId"
+                            "kms:EncryptionContext:aws-s3-arn": !Sub "arn:aws:s3:::${TerraformStateS3BucketName}"
+                            "kms:ViaService":
+                                - !Sub "s3.${AWS::Region}.amazonaws.com"
+
+                    - Sid: "S3 Grant"
+                      Effect: "Allow"
+                      Principal:
+                        AWS: !If
+                            - "HasTerraformStateS3KeyUsers"
+                            - !Ref "TerraformStateS3KeyUserArn"
+                            - !FindInMap ["Default", "TerraformStateS3KeyUsers", "Value"]
+                      Action:
+                        - "kms:CreateGrant"
+                        - "kms:ListGrants"
+                        - "kms:RevokeGrant"
+                      Resource: "*"
+                      Condition:
+                        Bool:
+                            "kms:GrantIsForAWSResource": true
+                        StringEquals:
+                            "kms:CallerAccount": !Ref "UniverseAccountId"
+                            "kms:ViaService":
+                                - !Sub "s3.${AWS::Region}.amazonaws.com"
+            Tags:
+                - Key: "TMX::Owner"
+                  Value: "jimmy@thrasibule.mx"
+                - Key: "TMX::AWSAccountName"
+                  Value: "universe"
+                - Key: "TMX:AWSAccountId"
+                  Value: !Ref "UniverseAccountId"
+                - Key: "TMX::AWSService"
+                  Value: "s3"

@@ -1,0 +1,211 @@
+# mx/thrasibule/universe/aws/universe/templates/0000-bootstrap/0000-aws-security-kms-keys.cfyml
+# =============================================================================================
+AWSTemplateFormatVersion: "2010-09-09"
+Description: >-
+    Create a set of Customer Managed Keys (CMK) for the _universe_ account to
+    encrypt the S3 bucket storing the CloudFormation templates.
+
+Metadata:
+    "TMX::AWSTemplateVersion": "1.0.0"
+    "TMX::Owner": "Jimmy Thrasibule <jimmy@thrasibule.mx>"
+    "AWS::CloudFormation::Interface":
+        ParameterGroups:
+            - Label:
+                default: "CloudFormation S3 Bucket Settings"
+              Parameters:
+                - "CloudFormationS3BucketName"
+            - Label:
+                default: "Key Permissions"
+              Parameters:
+                - "KeyAdministratorArn"
+                - "KeyUserArn"
+            - Label:
+                default: "AWS Accounts"
+              Parameters:
+                - "SecurityAccountId"
+
+Mappings:
+    Default:
+        KeyAdministrators:
+            Value:
+                - "arn:aws:iam::456957523240:role/aws-reserved/sso.amazonaws.com/eu-west-1/AWSReservedSSO_TMXKeyManagementServiceAccess_ecbf626714a23725"
+        KeyUsers:
+            Value:
+                  # Admin account.
+                - "arn:aws:iam::479518259644:root"
+                  # Universe account.
+                - "arn:aws:iam::314637056362:root"
+
+Parameters:
+    CloudFormationS3BucketName:
+        Type: "String"
+        Description: "Name of the S3 bucket storing the CloudFormation data."
+        Default: "tmx-universe-cloudformation"
+        MinLength: 1
+        MaxLength: 1024
+        AllowedPattern: "^[0-9a-z.-]+$"
+        ConstraintDescription: >-
+            The bucket name must contain only lowercase letters, numbers,
+            periods (.), and dashes (-).
+
+    KeyAdministratorArn:
+        Type: "CommaDelimitedList"
+        Description: "The ARN of the identity allowed to administrate the keys."
+
+    KeyUserArn:
+        Type: "CommaDelimitedList"
+        Description: "The ARN of the identity allowed to make use of the keys."
+
+    SecurityAccountId:
+        Type: "String"
+        Description: "The AWS account identifier of the _security_ account."
+        Default: "456957523240"
+        MinLength: 12
+        MaxLength: 12
+        AllowedPattern: "^\\d{12}$"
+        ConstraintDescription: "Must be a valid AWS account number."
+
+Outputs:
+    CloudFormationS3KMSKeyArn:
+        Condition: "IsSecurityAccount"
+        Description: >-
+            The ARN of the KMS key to encrypt the S3 bucket storing the
+            CloudFormation templates.
+        Value: !GetAtt "CloudFormationS3KMSKey.Arn"
+        Export:
+            Name: "TMX::Universe::Stack::Bootstrap::CloudFormationS3KMSKeyArn"
+
+    CloudFormationS3KMSKeyId:
+        Condition: "IsSecurityAccount"
+        Description: >-
+            The identifier of the KMS key to encrypt the S3 bucket storing the
+            CloudFormation templates.
+        Value: !Ref "CloudFormationS3KMSKey"
+        Export:
+            Name: "TMX::Universe::Stack::Bootstrap::CloudFormationS3KMSKeyId"
+
+Conditions:
+    HasKeyAdministrators: !Not [!Equals ["", !Join ["", !Ref "KeyAdministratorArn"]]]
+    HasKeyUsers: !Not [!Equals ["", !Join ["", !Ref "KeyUserArn"]]]
+    IsSecurityAccount: !Equals [!Ref "AWS::AccountId", !Ref "SecurityAccountId"]
+
+Resources:
+    CloudFormationS3KMSKey:
+        Type: "AWS::KMS::Key"
+        Condition: "IsSecurityAccount"
+        Properties:
+            Description: >-
+                Customer Managed Key (CMK) for S3 bucket encryption in the
+                _universe_ account.
+            Enabled: true
+            EnableKeyRotation: false
+            KeySpec: "SYMMETRIC_DEFAULT"
+            KeyUsage: "ENCRYPT_DECRYPT"
+            MultiRegion: false
+            KeyPolicy:
+                Version: "2012-10-17"
+                Statement:
+                    - Sid: "Root"
+                      Effect: "Allow"
+                      Principal:
+                        AWS: !Sub "arn:aws:iam::${AWS::AccountId}:root"
+                      Action:
+                        - "kms:CancelKeyDeletion"
+                        - "kms:Delete*"
+                        - "kms:Describe*"
+                        - "kms:Disable*"
+                        - "kms:Enable*"
+                        - "kms:Get*"
+                        - "kms:List*"
+                        - "kms:PutKeyPolicy"
+                        - "kms:RetireGrant"
+                        - "kms:Revoke*"
+                        - "kms:ScheduleKeyDeletion"
+                      Resource: "*"
+
+                    - Sid: "Key Administrators"
+                      Effect: "Allow"
+                      Principal:
+                        AWS: !If
+                            - "HasKeyAdministrators"
+                            - !Ref "KeyAdministratorArn"
+                            - !FindInMap ["Default", "KeyAdministrators", "Value"]
+                      Action:
+                        - "kms:CancelKeyDeletion"
+                        - "kms:Create*"
+                        - "kms:Delete*"
+                        - "kms:Describe*"
+                        - "kms:Disable*"
+                        - "kms:Enable*"
+                        - "kms:Get*"
+                        - "kms:List*"
+                        - "kms:Put*"
+                        - "kms:RetireGrant"
+                        - "kms:Revoke*"
+                        - "kms:ScheduleKeyDeletion"
+                        - "kms:TagResource"
+                        - "kms:UntagResource"
+                        - "kms:Update*"
+                      Resource: "*"
+
+                    - Sid: "S3 Key Listing"
+                      Effect: "Allow"
+                      Principal:
+                        AWS: !If
+                            - "HasKeyUsers"
+                            - !Ref "KeyUserArn"
+                            - !FindInMap ["Default", "KeyUsers", "Value"]
+                      Action:
+                        - "kms:DescribeKey"
+                      Resource: "*"
+                      Condition:
+                        StringEquals:
+                            "kms:ViaService":
+                                - !Sub "s3.${AWS::Region}.amazonaws.com"
+
+                    - Sid: "S3 Key Usage"
+                      Effect: "Allow"
+                      Principal:
+                        AWS: !If
+                            - "HasKeyUsers"
+                            - !Ref "KeyUserArn"
+                            - !FindInMap ["Default", "KeyUsers", "Value"]
+                      Action:
+                        - "kms:Decrypt"
+                        - "kms:Encrypt"
+                        - "kms:GenerateDataKey*"
+                        - "kms:ReEncrypt*"
+                      Resource: "*"
+                      Condition:
+                        StringEquals:
+                            "kms:EncryptionContext:aws-s3-arn": !Sub "arn:aws:s3:::${CloudFormationS3BucketName}"
+                            "kms:ViaService":
+                                - !Sub "s3.${AWS::Region}.amazonaws.com"
+
+                    - Sid: "S3 Grant"
+                      Effect: "Allow"
+                      Principal:
+                        AWS: !If
+                            - "HasKeyUsers"
+                            - !Ref "KeyUserArn"
+                            - !FindInMap ["Default", "KeyUsers", "Value"]
+                      Action:
+                        - "kms:CreateGrant"
+                        - "kms:ListGrants"
+                        - "kms:RevokeGrant"
+                      Resource: "*"
+                      Condition:
+                        Bool:
+                            "kms:GrantIsForAWSResource": true
+                        StringEquals:
+                            "kms:ViaService":
+                                - !Sub "s3.${AWS::Region}.amazonaws.com"
+            Tags:
+                - Key: "TMX::Owner"
+                  Value: "jimmy@thrasibule.mx"
+                - Key: "TMX::AWSAccountName"
+                  Value: "universe"
+                - Key: "TMX:AWSAccountId"
+                  Value: "314637056362"
+                - Key: "TMX::AWSService"
+                  Value: "s3"

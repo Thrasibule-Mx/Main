@@ -1,0 +1,367 @@
+# mx/thrasibule/universe/aws/admin/templates/0001-aws-admin-sso-cloudformation-administrators.cfyml
+# =================================================================================================
+AWSTemplateFormatVersion: "2010-09-09"
+Description: >-
+    Create a set of credentials allowing the administration of the entire
+    organization via CloudFormation.
+
+Metadata:
+    "TMX::AWSTemplateVersion": "1.0.0"
+    "TMX::Owner": "Jimmy Thrasibule <jimmy@thrasibule.mx>"
+    "AWS::CloudFormation::Interface":
+        ParameterGroups:
+            - Label:
+                default: "AWS Accounts"
+              Parameters:
+                - "AdminAccountId"
+                - "UniverseAccountId"
+            - Label:
+                default: "CloudFormation Settings"
+              Parameters:
+                - "CloudFormationS3BucketName"
+                - "CloudFormationS3BucketKeyArn"
+                - "CloudFormationServiceRolePath"
+            - Label:
+                default: "SSO Parameters"
+              Parameters:
+                - "SSOInstanceArn"
+                - "SSOPrincipalId"
+                - "SSOPrincipalType"
+            - Label:
+                default: "Stack"
+              Parameters:
+                - "Prefix"
+
+Parameters:
+    AdminAccountId:
+        Type: "String"
+        Description: "The AWS account identifier of the _admin_ account."
+        Default: "479518259644"
+        MinLength: 12
+        MaxLength: 12
+        AllowedPattern: "^\\d{12}$"
+        ConstraintDescription: "Must be a valid AWS account number."
+
+    UniverseAccountId:
+        Type: "String"
+        Description: "The AWS account identifier of the _universe_ account."
+        Default: "314637056362"
+        MinLength: 12
+        MaxLength: 12
+        AllowedPattern: "^\\d{12}$"
+        ConstraintDescription: "Must be a valid AWS account number."
+
+    CloudFormationS3BucketName:
+        Type: "String"
+        Description: >-
+            Name of the S3 bucket storing the CloudFormation templates.
+        Default: "tmx-universe-cloudformation"
+        MinLength: 1
+        MaxLength: 1024
+        AllowedPattern: "^[0-9a-z.-]+$"
+        ConstraintDescription: >-
+            The bucket name must contain only lowercase letters, numbers,
+            periods (.), and dashes (-).
+
+    CloudFormationS3BucketKeyArn:
+        Type: "String"
+        Description: >-
+            The ARN of the KMS key used to encrypt the data into the S3 bucket.
+        AllowedPattern: "^arn:aws:kms:[\\w-]+:\\d{12}:key/[0-9a-z-]+$"
+
+    CloudFormationServiceRolePath:
+        Type: "String"
+        Description: >-
+            Path location where to create the CloudFormation administrative
+            service role in the _admin_ account.
+        Default: "/tmx-service-role/"
+        MinLength: 1
+        MaxLength: 512
+        AllowedPattern: "^(/|/[\\w-]+/)$"
+        ConstraintDescription: >-
+            This parameter allows a string of characters consisting of either a
+            forward slash (/) by itself or a string that must begin and end with
+            forward slashes.
+
+    SSOInstanceArn:
+        Type: "String"
+        Description: >-
+            The ARN of the SSO instance on which to create the resources.
+        Default: "arn:aws:sso:::instance/ssoins-6804ddccfa1cfe01"
+        MinLength: 43
+        MaxLength: 46
+        AllowedPattern: "arn:aws:sso:::instance/(sso)?ins-[a-zA-Z0-9-.]{16}"
+        ConstraintDescription: >-
+            The provided value must be a valid AWS SSO instance ARN.
+
+    SSOPrincipalId:
+        Type: "String"
+        Description: >-
+            The identifier of the user or group which is allowed to administrate
+            the organization via CloudFormation.
+        # SSO Group: TMXCloudFormationAdministrators
+        Default: "9367048bc1-2838eb27-c37c-4828-bc16-46f31ed074cd"
+        MinLength: 36
+        MaxLength: 47
+        AllowedPattern: >-
+            ^([0-9a-f]{10}-|)[A-Fa-f0-9]{8}-[A-Fa-f0-9]{4}-[A-Fa-f0-9]{4}-[A-Fa-f0-9]{4}-[A-Fa-f0-9]{12}$
+        ConstraintDescription: >-
+            PrincipalIds are GUIDs
+            (For example, f81d4fae-7dec-11d0-a765-00a0c91e6bf6).
+
+    SSOPrincipalType:
+        Type: "String"
+        Description: "The type of the provided identity."
+        Default: "GROUP"
+        AllowedValues:
+            - "USER"
+            - "GROUP"
+
+    Prefix:
+        Type: "String"
+        Description: "A value prepended to each created resources."
+        Default: "TMXCloudFormation"
+        MinLength: 0
+        MaxLength: 128
+        AllowedPattern: "^[\\w-]*$"
+        ConstraintDescription: >-
+            Prefix is a string of characters consisting of upper and lowercase
+            alphanumeric characters, dash (-) and underscore (_) with no spaces.
+
+Conditions:
+    AdminAccount: !Equals [!Ref "AWS::AccountId", !Ref "AdminAccountId"]
+
+Resources:
+    # In the ``admin`` account, we create a dedicated role that only
+    # CloudFormation can use to administrate the account.
+    AWSCloudFormationStackAdministrationRole:
+        Type: "AWS::IAM::Role"
+        Condition: "AdminAccount"
+        Properties:
+            RoleName: "AWSCloudFormationStackAdministrationRole"
+            Path: !Ref "CloudFormationServiceRolePath"
+            AssumeRolePolicyDocument:
+                Version: "2012-10-17"
+                Statement:
+                    - Effect: "Allow"
+                      Action:
+                        - "sts:AssumeRole"
+                      Principal:
+                        Service: "cloudformation.amazonaws.com"
+            ManagedPolicyArns:
+                - "arn:aws:iam::aws:policy/AdministratorAccess"
+
+    SSOTMXCloudFormationStackAdministrators:
+        Type: "AWS::SSO::PermissionSet"
+        Condition: "AdminAccount"
+        Properties:
+            Name: !Sub "${Prefix}StackAccess"
+            InstanceArn: !Ref "SSOInstanceArn"
+            Description: >-
+                Allow the administration of the _admin_ account via
+                CloudFormation.
+            SessionDuration: "PT1H"
+            InlinePolicy:
+                Version: "2012-10-17"
+                Statement:
+                    - Effect: "Allow"
+                      Action:
+                        - "iam:ListRoles"
+                      Resource: !Sub "arn:aws:iam::${AWS::AccountId}:role/*"
+                    - Effect: "Allow"
+                      Action:
+                        - "iam:GetRole"
+                        - "iam:PassRole"
+                      Resource: !GetAtt "AWSCloudFormationStackAdministrationRole.Arn"
+                    - Effect: "Allow"
+                      Action:
+                        - "s3:ListAllMyBuckets"
+                      Resource: "*"
+                    - Effect: "Allow"
+                      Action:
+                        - "s3:GetBucketLocation"
+                        - "s3:GetBucketTagging"
+                        - "s3:GetBucketVersioning"
+                        - "s3:ListBucket"
+                        - "s3:ListBucketVersions"
+                        - "s3:ListBucketMultipartUploads"
+                      Resource:
+                        - !Sub "arn:aws:s3:::${CloudFormationS3BucketName}"
+                    - Effect: "Allow"
+                      Action:
+                        - "s3:AbortMultipartUpload"
+                        - "s3:DeleteObject"
+                        - "s3:DeleteObjectTagging"
+                        - "s3:DeleteObjectVersion"
+                        - "s3:DeleteObjectVersionTagging"
+                        - "s3:GetObject"
+                        - "s3:GetObjectTagging"
+                        - "s3:GetObjectVersion"
+                        - "s3:GetObjectVersionTagging"
+                        - "s3:ListMultipartUploadParts"
+                        - "s3:PutObjectTagging"
+                        - "s3:PutObjectVersionTagging"
+                      Resource:
+                        - !Sub "arn:aws:s3:::${CloudFormationS3BucketName}/*"
+                    - Effect: "Allow"
+                      Action:
+                        - "s3:PutObject"
+                        - "s3:PutObjectAcl"
+                      Resource:
+                        - !Sub "arn:aws:s3:::${CloudFormationS3BucketName}/*"
+                      Condition:
+                        StringEquals:
+                            "s3:x-amz-acl": "bucket-owner-full-control"
+                    - Effect: "Allow"
+                      Action:
+                        - "kms:DescribeKey"
+                      Resource: !Sub "${CloudFormationS3BucketKeyArn}"
+                      Condition:
+                        StringEquals:
+                            "kms:ViaService":
+                                - !Sub "s3.${AWS::Region}.amazonaws.com"
+                    - Effect: "Allow"
+                      Action:
+                        - "kms:Decrypt"
+                        - "kms:Encrypt"
+                        - "kms:GenerateDataKey*"
+                        - "kms:ReEncrypt*"
+                      Resource: !Sub "${CloudFormationS3BucketKeyArn}"
+                      Condition:
+                        StringEquals:
+                            "kms:EncryptionContext:aws-s3-arn": !Sub "arn:aws:s3:::${CloudFormationS3BucketName}"
+                            "kms:ViaService":
+                                - !Sub "s3.${AWS::Region}.amazonaws.com"
+                    - Effect: "Allow"
+                      Action:
+                        - "kms:CreateGrant"
+                        - "kms:ListGrants"
+                        - "kms:RevokeGrant"
+                      Resource: !Sub "${CloudFormationS3BucketKeyArn}"
+                      Condition:
+                        Bool:
+                            "kms:GrantIsForAWSResource": true
+                        StringEquals:
+                            "kms:ViaService":
+                                - !Sub "s3.${AWS::Region}.amazonaws.com"
+            ManagedPolicies:
+                - "arn:aws:iam::aws:policy/AWSCloudFormationFullAccess"
+                - "arn:aws:iam::aws:policy/AWSOrganizationsReadOnlyAccess"
+
+    # In the ``universe`` account, only CloudFormation StackSet can be used
+    # using the AWS service-managed role.
+    SSOTMXCloudFormationStackSetAdministrators:
+        Type: "AWS::SSO::PermissionSet"
+        Condition: "AdminAccount"
+        Properties:
+            Name: !Sub "${Prefix}StackSetAccess"
+            InstanceArn: !Ref "SSOInstanceArn"
+            Description: >-
+                Allow the administration of the entire organization via
+                CloudFormation Stack sets.
+            SessionDuration: "PT1H"
+            InlinePolicy:
+                Version: "2012-10-17"
+                Statement:
+                    - Effect: "Allow"
+                      Action:
+                        - "iam:GetRole"
+                        - "iam:PassRole"
+                      Resource: >-
+                        arn:aws:iam::314637056362:role/aws-service-role/member.org.stacksets.cloudformation.amazonaws.com/AWSServiceRoleForCloudFormationStackSetsOrgMember
+                    - Effect: "Allow"
+                      Action:
+                        - "s3:ListAllMyBuckets"
+                      Resource: "*"
+                    - Effect: "Allow"
+                      Action:
+                        - "s3:GetBucketLocation"
+                        - "s3:GetBucketTagging"
+                        - "s3:GetBucketVersioning"
+                        - "s3:ListBucket"
+                        - "s3:ListBucketVersions"
+                        - "s3:ListBucketMultipartUploads"
+                      Resource:
+                        - !Sub "arn:aws:s3:::${CloudFormationS3BucketName}"
+                    - Effect: "Allow"
+                      Action:
+                        - "s3:AbortMultipartUpload"
+                        - "s3:DeleteObject"
+                        - "s3:DeleteObjectTagging"
+                        - "s3:DeleteObjectVersion"
+                        - "s3:DeleteObjectVersionTagging"
+                        - "s3:GetObject"
+                        - "s3:GetObjectTagging"
+                        - "s3:GetObjectVersion"
+                        - "s3:GetObjectVersionTagging"
+                        - "s3:ListMultipartUploadParts"
+                        - "s3:PutObjectTagging"
+                        - "s3:PutObjectVersionTagging"
+                      Resource:
+                        - !Sub "arn:aws:s3:::${CloudFormationS3BucketName}/*"
+                    - Effect: "Allow"
+                      Action:
+                        - "s3:PutObject"
+                        - "s3:PutObjectAcl"
+                      Resource:
+                        - !Sub "arn:aws:s3:::${CloudFormationS3BucketName}/*"
+                      Condition:
+                        StringEquals:
+                            "s3:x-amz-acl": "bucket-owner-full-control"
+                    - Effect: "Allow"
+                      Action:
+                        - "kms:DescribeKey"
+                      Resource: !Sub "${CloudFormationS3BucketKeyArn}"
+                      Condition:
+                        StringEquals:
+                            "kms:ViaService":
+                                - !Sub "s3.${AWS::Region}.amazonaws.com"
+                    - Effect: "Allow"
+                      Action:
+                        - "kms:Decrypt"
+                        - "kms:Encrypt"
+                        - "kms:GenerateDataKey*"
+                        - "kms:ReEncrypt*"
+                      Resource: !Sub "${CloudFormationS3BucketKeyArn}"
+                      Condition:
+                        StringEquals:
+                            "kms:EncryptionContext:aws-s3-arn": !Sub "arn:aws:s3:::${CloudFormationS3BucketName}"
+                            "kms:ViaService":
+                                - !Sub "s3.${AWS::Region}.amazonaws.com"
+                    - Effect: "Allow"
+                      Action:
+                        - "kms:CreateGrant"
+                        - "kms:ListGrants"
+                        - "kms:RevokeGrant"
+                      Resource: !Sub "${CloudFormationS3BucketKeyArn}"
+                      Condition:
+                        Bool:
+                            "kms:GrantIsForAWSResource": true
+                        StringEquals:
+                            "kms:ViaService":
+                                - !Sub "s3.${AWS::Region}.amazonaws.com"
+            ManagedPolicies:
+                - "arn:aws:iam::aws:policy/AWSCloudFormationFullAccess"
+                - "arn:aws:iam::aws:policy/AWSOrganizationsReadOnlyAccess"
+
+    SSOAssignmentAdminAccount:
+        Type: "AWS::SSO::Assignment"
+        Condition: "AdminAccount"
+        Properties:
+            InstanceArn: !Ref "SSOInstanceArn"
+            PermissionSetArn: !GetAtt "SSOTMXCloudFormationStackAdministrators.PermissionSetArn"
+            PrincipalId: !Ref "SSOPrincipalId"
+            PrincipalType: !Ref "SSOPrincipalType"
+            TargetId: !Ref "AdminAccountId"
+            TargetType: "AWS_ACCOUNT"
+
+    SSOAssignmentUniverseAccount:
+        Type: "AWS::SSO::Assignment"
+        Condition: "AdminAccount"
+        Properties:
+            InstanceArn: !Ref "SSOInstanceArn"
+            PermissionSetArn: !GetAtt "SSOTMXCloudFormationStackSetAdministrators.PermissionSetArn"
+            PrincipalId: !Ref "SSOPrincipalId"
+            PrincipalType: !Ref "SSOPrincipalType"
+            TargetId: !Ref "UniverseAccountId"
+            TargetType: "AWS_ACCOUNT"

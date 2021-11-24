@@ -1,0 +1,184 @@
+# mx/thrasibule/universe/aws/universe/templates/0000-bootstrap/0001-aws-universe-cloudformation-s3.cfyml
+# ======================================================================================================
+AWSTemplateFormatVersion: "2010-09-09"
+Description: >-
+    Create the S3 bucket which is storing the CloudFormation templates.
+
+Metadata:
+    "TMX::AWSTemplateVersion": "1.0.0"
+    "TMX::AWSTemplateOwner": "Jimmy Thrasibule <jimmy@thrasibule.mx>"
+    "AWS::CloudFormation::Interface":
+        ParameterGroups:
+            - Label:
+                default: "S3 Setting"
+              Parameters:
+                - "S3BucketName"
+                - "S3BucketKeyArn"
+            - Label:
+                default: "AWS Accounts"
+              Parameters:
+                - "AdminAccountId"
+                - "UniverseAccountId"
+
+Parameters:
+    S3BucketName:
+        Type: "String"
+        Description: >-
+            Name of the S3 bucket storing the CloudFormation templates.
+        Default: "tmx-universe-cloudformation"
+        MinLength: 1
+        MaxLength: 1024
+        AllowedPattern: "^[0-9a-z.-]+$"
+        ConstraintDescription: >-
+            The bucket name must contain only lowercase letters, numbers,
+            periods (.), and dashes (-).
+
+    S3BucketKeyArn:
+        Type: "String"
+        Description: >-
+            The ARN of the KMS key used to encrypt the data into the S3 bucket.
+        AllowedPattern: "^arn:aws:kms:[\\w-]+:\\d{12}:key/[0-9a-z-]+$"
+
+    AdminAccountId:
+        Type: "String"
+        Description: "The AWS account identifier of the _admin_ account."
+        Default: "479518259644"
+        MinLength: 12
+        MaxLength: 12
+        AllowedPattern: "^\\d{12}$"
+        ConstraintDescription: "Must be a valid AWS account number."
+
+    UniverseAccountId:
+        Type: "String"
+        Description: "The AWS account identifier of the _universe_ account."
+        Default: "314637056362"
+        MinLength: 12
+        MaxLength: 12
+        AllowedPattern: "^\\d{12}$"
+        ConstraintDescription: "Must be a valid AWS account number."
+
+Outputs:
+    CloudFormationS3BuketArn:
+        Condition: "IsUniverseAccount"
+        Description: >-
+            ARN of the S3 bucket storing the CloudFormation templates.
+        Value: !GetAtt "CloudFormationS3Bucket.Arn"
+        Export:
+            Name: "TMX::Universe::Stack::Bootstrap::CloudFormationS3BucketArn"
+
+    CloudFormationS3BuketName:
+        Condition: "IsUniverseAccount"
+        Description: >-
+            Name of the S3 bucket storing the CloudFormation templates.
+        Value: !Ref "CloudFormationS3Bucket"
+        Export:
+            Name: "TMX::Universe::Stack::Bootstrap::CloudFormationS3BucketName"
+
+Conditions:
+    IsUniverseAccount: !Equals [!Ref "AWS::AccountId", !Ref "UniverseAccountId"]
+
+Resources:
+    CloudFormationS3Bucket:
+        Type: "AWS::S3::Bucket"
+        Condition: "IsUniverseAccount"
+        DeletionPolicy: "Delete"
+        Properties:
+            AccessControl: "Private"
+            BucketName: !Ref "S3BucketName"
+            BucketEncryption:
+                ServerSideEncryptionConfiguration:
+                    - BucketKeyEnabled: true
+                      ServerSideEncryptionByDefault:
+                        KMSMasterKeyID: !Ref "S3BucketKeyArn"
+                        SSEAlgorithm: "aws:kms"
+            LifecycleConfiguration:
+                Rules:
+                    - Status: "Enabled"
+                      ExpirationInDays: 365
+                      NoncurrentVersionExpirationInDays: 30
+                      AbortIncompleteMultipartUpload:
+                        DaysAfterInitiation: 7
+                      Transitions:
+                        - TransitionInDays: 30
+                          StorageClass: "ONEZONE_IA"
+            OwnershipControls:
+                Rules:
+                    - ObjectOwnership: "BucketOwnerPreferred"
+            PublicAccessBlockConfiguration:
+                BlockPublicAcls: true
+                BlockPublicPolicy: true
+                IgnorePublicAcls: true
+                RestrictPublicBuckets: true
+            VersioningConfiguration:
+                Status: "Enabled"
+            Tags:
+                - Key: "TMX::Owner"
+                  Value: "jimmy@thrasibule.mx"
+                - Key: "TMX::AWSAccountName"
+                  Value: "universe"
+                - Key: "TMX:AWSAccountId"
+                  Value: !Ref "AWS::AccountId"
+
+    CloudFormationS3BucketPolicy:
+        Type: "AWS::S3::BucketPolicy"
+        Condition: "IsUniverseAccount"
+        Properties:
+            Bucket: !Ref "CloudFormationS3Bucket"
+            PolicyDocument:
+                Version: "2012-10-17"
+                Statement:
+                    - Effect: "Deny"
+                      Principal: "*"
+                      Action: "s3:*"
+                      Resource:
+                          - !GetAtt "CloudFormationS3Bucket.Arn"
+                          - !Sub "${CloudFormationS3Bucket.Arn}/*"
+                      Condition:
+                        Bool:
+                            "aws:SecureTransport": false
+                    - Effect: "Allow"
+                      Principal:
+                        AWS:
+                            - !Sub "arn:aws:iam::${AdminAccountId}:root"
+                            - !Sub "arn:aws:iam::${UniverseAccountId}:root"
+                      Action:
+                        - "s3:GetBucketLocation"
+                        - "s3:GetBucketTagging"
+                        - "s3:GetBucketVersioning"
+                        - "s3:ListBucket"
+                        - "s3:ListBucketVersions"
+                        - "s3:ListBucketMultipartUploads"
+                      Resource:
+                        - !GetAtt "CloudFormationS3Bucket.Arn"
+                    - Effect: "Allow"
+                      Principal:
+                        AWS:
+                            - !Sub "arn:aws:iam::${AdminAccountId}:root"
+                            - !Sub "arn:aws:iam::${UniverseAccountId}:root"
+                      Action:
+                        - "s3:AbortMultipartUpload"
+                        - "s3:DeleteObject"
+                        - "s3:DeleteObjectTagging"
+                        - "s3:DeleteObjectVersion"
+                        - "s3:DeleteObjectVersionTagging"
+                        - "s3:GetObject"
+                        - "s3:GetObjectTagging"
+                        - "s3:GetObjectVersion"
+                        - "s3:GetObjectVersionTagging"
+                        - "s3:ListMultipartUploadParts"
+                        - "s3:PutObjectTagging"
+                        - "s3:PutObjectVersionTagging"
+                      Resource:
+                        - !Sub "${CloudFormationS3Bucket.Arn}/*"
+                    - Effect: "Allow"
+                      Principal:
+                        AWS:
+                            - !Sub "arn:aws:iam::${AdminAccountId}:root"
+                            - !Sub "arn:aws:iam::${UniverseAccountId}:root"
+                      Action:
+                        - "s3:PutObject"
+                        - "s3:PutObjectAcl"
+                      Resource: !Sub "${CloudFormationS3Bucket.Arn}/*"
+                      Condition:
+                        StringEquals:
+                            "s3:x-amz-acl": "bucket-owner-full-control"
