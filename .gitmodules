@@ -13,3 +13,6 @@
 [submodule "mx/thrasibule/projects/kado"]
 	path = mx/thrasibule/projects/kado
 	url = git@bitbucket.org:thrasibule-mx/kado.git
+[submodule "mx/thrasibule/projects/lightpath/hw"]
+	path = mx/thrasibule/projects/lightpath/hw
+	url = git@bitbucket.org:thrasibule-mx/lightpath-hw.git
