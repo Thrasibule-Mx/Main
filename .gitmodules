@@ -19,3 +19,6 @@
 [submodule "mx/thrasibule/universe/staging"]
 	path = mx/thrasibule/universe/staging
 	url = git@bitbucket.org:thrasibule-mx/universe-staging.git
+[submodule "mx/thrasibule/universe/images"]
+	path = mx/thrasibule/universe/images
+	url = git@bitbucket.org:thrasibule-mx/universe-images.git
