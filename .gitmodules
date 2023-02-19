@@ -1,24 +1,32 @@
 [submodule "mx/thrasibule/projects/zyn"]
+	branch = main
 	path = mx/thrasibule/projects/zyn
 	url = git@bitbucket.org:thrasibule-mx/zyn.git
 [submodule "mx/thrasibule/projects/mx"]
+	branch = main
 	path = mx/thrasibule/projects/mx
 	url = git@bitbucket.org:thrasibule-mx/mx.git
 [submodule "mx/thrasibule/projects/none"]
+	branch = main
 	path = mx/thrasibule/projects/none
 	url = git@bitbucket.org:thrasibule-mx/none.git
 [submodule "mx/thrasibule/projects/href.sh"]
+	branch = main
 	path = mx/thrasibule/projects/href.sh
 	url = git@bitbucket.org:thrasibule-mx/href.sh.git
 [submodule "mx/thrasibule/projects/kado"]
+	branch = main
 	path = mx/thrasibule/projects/kado
 	url = git@bitbucket.org:thrasibule-mx/kado.git
 [submodule "mx/thrasibule/projects/lightpath/hw"]
+	branch = main
 	path = mx/thrasibule/projects/lightpath/hw
 	url = git@bitbucket.org:thrasibule-mx/lightpath-hw.git
 [submodule "mx/thrasibule/universe/staging"]
+	branch = main
 	path = mx/thrasibule/universe/staging
 	url = git@bitbucket.org:thrasibule-mx/universe-staging.git
 [submodule "mx/thrasibule/universe/images"]
+	branch = main
 	path = mx/thrasibule/universe/images
 	url = git@bitbucket.org:thrasibule-mx/universe-images.git
