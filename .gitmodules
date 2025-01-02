@@ -30,3 +30,6 @@
 	branch = main
 	path = mx/thrasibule/universe/images
 	url = git@bitbucket.org:thrasibule-mx/universe-images.git
+[submodule "mx/thrasibule/universe/config"]
+	path = mx/thrasibule/universe/config
+	url = git@bitbucket.org:thrasibule-mx/universe-config.git
