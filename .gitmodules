@@ -1,30 +1,30 @@
 [submodule "mx/thrasibule/projects/href.sh"]
 	branch = main
 	path = mx/thrasibule/projects/href.sh
-	url = git@github.com:Thrasibule-Mx/href.sh.git
+	url = https://github.com/Thrasibule-Mx/href.sh.git
 [submodule "mx/thrasibule/projects/kado"]
 	branch = main
 	path = mx/thrasibule/projects/kado
-	url = git@github.com:Thrasibule-Mx/kado.git
+	url = https://github.com/Thrasibule-Mx/kado.git
 [submodule "mx/thrasibule/projects/none"]
 	branch = main
 	path = mx/thrasibule/projects/none
-	url = git@github.com:Thrasibule-Mx/none.git
+	url = https://github.com/Thrasibule-Mx/none.git
 [submodule "mx/thrasibule/projects/zyn"]
 	branch = main
 	path = mx/thrasibule/projects/zyn
-	url = git@github.com:Thrasibule-Mx/zyn.git
+	url = https://github.com/Thrasibule-Mx/zyn.git
 [submodule "mx/thrasibule/universe/config"]
 	path = mx/thrasibule/universe/config
-	url = git@github.com:Thrasibule-Mx/universe-config.git
+	url = https://github.com/Thrasibule-Mx/universe-config.git
 [submodule "mx/thrasibule/universe/images"]
 	branch = main
 	path = mx/thrasibule/universe/images
-	url = git@github.com:Thrasibule-Mx/universe-images.git
+	url = https://github.com/Thrasibule-Mx/universe-images.git
 [submodule "mx/thrasibule/universe/internal"]
 	path = mx/thrasibule/universe/internal
-	url = git@github.com:Thrasibule-Mx/universe-internal.git
+	url = https://github.com/Thrasibule-Mx/universe-internal.git
 [submodule "mx/thrasibule/universe/staging"]
 	branch = main
 	path = mx/thrasibule/universe/staging
-	url = git@github.com:Thrasibule-Mx/universe-staging.git
+	url = https://github.com/Thrasibule-Mx/universe-staging.git
