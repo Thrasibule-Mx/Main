@@ -1,0 +1,31 @@
+# .yamllint.yml
+# =============
+#
+# Copying
+# -------
+#
+# Copyright (c) 2026 Jimmy Thrasibule <dev@jimmy.lt>.
+#
+# This file is part of the *thrasibule.mx* project. This software project and
+# associated documentations files (the "Software") are exclusive property of
+# it's authors. It is prohibited to deal with the Software without explicit
+# authorization and agreement given by its authors. Restrictions include but not
+# limited to: the rights to use, copy, modify, merge, publish, distribute,
+# sublicense, sell copies of the Software.
+#
+extends: "default"
+
+rules:
+  comments:
+    min-spaces-from-content: 1
+    require-starting-space: false
+  document-start:
+    present: false
+  indentation:
+    spaces: 2
+  line-length:
+    max: 160
+  quoted-strings:
+    required: true
+    quote-type: "double"
+    allow-quoted-quotes: true
