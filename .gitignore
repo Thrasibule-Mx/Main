@@ -300,3 +300,4 @@ $RECYCLE.BIN/
 # control as they are data points which are potentially sensitive and subject
 # to change depending on the environment.
 .env
+.pre-commit-config.yaml
