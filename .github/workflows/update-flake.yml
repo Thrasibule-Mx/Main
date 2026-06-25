@@ -48,3 +48,4 @@ jobs:
           body: "This is an automated PR to update ``flake.lock``."
           branch: "chore/update-flake"
           delete-branch: true
+          sign-commits: true
