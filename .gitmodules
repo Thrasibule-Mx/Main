@@ -28,3 +28,6 @@
 	branch = main
 	path = mx/thrasibule/universe/staging
 	url = git@github.com:Thrasibule-Mx/universe-staging.git
+[submodule "mx/thrasibule/universe/infrastructure"]
+	path = mx/thrasibule/universe/infrastructure
+	url = git@github.com:Thrasibule-Mx/universe-infrastructure.git
