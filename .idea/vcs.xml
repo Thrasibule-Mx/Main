@@ -7,5 +7,12 @@
     <mapping directory="$PROJECT_DIR$/mx/thrasibule/projects/mx" vcs="Git" />
     <mapping directory="$PROJECT_DIR$/mx/thrasibule/projects/none" vcs="Git" />
     <mapping directory="$PROJECT_DIR$/mx/thrasibule/projects/zyn" vcs="Git" />
+    <mapping directory="$PROJECT_DIR$/mx/thrasibule/universe/config" vcs="Git" />
+    <mapping directory="$PROJECT_DIR$/mx/thrasibule/universe/images" vcs="Git" />
+    <mapping directory="$PROJECT_DIR$/mx/thrasibule/universe/internal" vcs="Git" />
+    <mapping directory="$PROJECT_DIR$/mx/thrasibule/universe/staging" vcs="Git" />
+    <mapping directory="$PROJECT_DIR$/mx/thrasibule/universe/staging/collections/ansible_collections/universe/common" vcs="Git" />
+    <mapping directory="$PROJECT_DIR$/mx/thrasibule/universe/staging/collections/ansible_collections/universe/hashicorp" vcs="Git" />
+    <mapping directory="$PROJECT_DIR$/mx/thrasibule/universe/staging/collections/ansible_collections/universe/unix" vcs="Git" />
   </component>
 </project>
